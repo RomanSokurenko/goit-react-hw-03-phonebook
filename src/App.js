@@ -1,34 +1,93 @@
-import './App.css';
-import Test from './Test';
-import Header from './header/Header';
-import Goods from './Goods';
+import React, { Component } from 'react';
+import Container from './Container';
+import shortid from 'shortid';
+import Form from './Form';
+import Contacts from './Contacts';
+import initialContacts from './Contacts/initialContacts.json';
+import Filter from './Filter';
 
-const header_data = {
-   site_app: 'Новая штука которую я забыл как называется))))',
-   nav : [
-      { "link": "nav1", "text": "my text1" },
-      { "link": "nav2", "text": "my text2" },
-      { "link": "nav3", "text": "my tex3" }
-      
-   ]
-};
+class App extends Component {
+  state = {
+    contacts: [],
+    filter: '',
+  };
 
-const goods = [
-   { "title": "apple", "cost": 42, "image": "https://images.unsplash.com/photo-1627530930207-983280fd1d0f?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=802&q=80" },
-   { "title": "груша", "cost": 24, "image": "https://images.unsplash.com/photo-1627715832017-d0b257228f14?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=668&q=80" },];
-   
+  componentDidMount() {
+    const contacts = localStorage.getItem('contacts');
+    const parsedContacts = JSON.parse(contacts);
 
-function App() {
-   return (
-      <>
-         <Header data={header_data}/>
-         <Test />
-         {goods.map(item => <Goods key={item.title} title={item.title} cost={item.cost} image={ item.mage}/>) }
-         
-      </>
-   );
+    if (parsedContacts) {
+      this.setState({ contacts: parsedContacts });
+    }
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.state.contacts !== prevState.contacts) {
+      console.log('update');
+      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
+    }
+  }
+
+  formSubmitHandler = ({ name, number }) => {
+    const { contacts } = this.state;
+    if (contacts.some(contact => contact.name === name)) {
+      alert(
+        `${name
+          .split(' ')
+          .map(string => string.charAt(0).toUpperCase() + string.slice(1))
+          .join(
+            ' ',
+          )} is already in contacts. Change contact's name or delete old.`,
+      );
+      return;
+    }
+    const contact = {
+      id: shortid.generate(),
+      name,
+      number,
+    };
+
+    this.setState(({ contacts }) => ({
+      contacts: [contact, ...contacts],
+    }));
+  };
+
+  deleteContact = contactId => {
+    this.setState(prevState => ({
+      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
+    }));
+  };
+
+  changeFilter = e => {
+    this.setState({ filter: e.currentTarget.value });
+  };
+
+  getVisibleContact = () => {
+    const { filter, contacts } = this.state;
+    const normalizedFilter = filter.toLowerCase();
+
+    return contacts.filter(contact =>
+      contact.name.toLowerCase().includes(normalizedFilter),
+    );
+  };
+
+  render() {
+    const { filter } = this.state;
+    const visibleContacts = this.getVisibleContact();
+
+    return (
+      <Container>
+        <h1>Phonebook</h1>
+        <Form onSubmit={this.formSubmitHandler} />
+        <h2>Contacts</h2>
+        <Filter value={filter} onChange={this.changeFilter} />
+        <Contacts
+          contacts={visibleContacts}
+          onDeleteContact={this.deleteContact}
+        />
+      </Container>
+    );
+  }
 }
-
-
 
 export default App;
